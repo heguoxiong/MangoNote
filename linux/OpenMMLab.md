@@ -97,6 +97,99 @@ git checkout v2.24.0
 
 ![img](TyporaImg/OpenMMLab/v2-c4e6229a1fd42692d090108481be34a6_r.jpg)
 
+## 代码调试
+
+### RetinaNet
+
+![image-20221202121203933](TyporaImg/OpenMMLab/image-20221202121203933.png)
+
+### FPN
+
+### anchor
+
+anchor生成：
+大的特征图预测小的物体，小的特征图预测大的物体，fpn有5个输出，所以会有5种尺度的anchor，每种尺度又分为9中宽高比。
+
+anchor编码：
+
+在 anchor-based 算法中，为了利用 anchor 信息进行更快更好的收敛，一般会对 head 输出的 bbox 分支 4 个值进行编解码操作，作用有两个。
+
+1. 更好的平衡分类和回归分支 loss，以及平衡 bbox 四个预测值的 loss
+2. 训练过程中引入 anchor 信息，加快收敛
+
+首先gt box转化成中心点和宽高的形式，
+
+同理anchor也转换成中心点和宽高的形式，
+
+计算二者的相对值。
+
+anchor分配：
+
+这部分主要是根据iou的大小划分正负样本，既挑出那些负责预测gt的anchor。分配的策略非常简单，就是iou策略。
+
+```shell
+1. 正样本：和gt的iou大于0.5的ancho样本
+2. 负样本：和gt的iou小于0.4的anchor
+3. 忽略样本：其他anchor
+```
+
+## 数据集
+
+ Pascal VOC， CityScapes, LVIS
+
+### COCO
+
+【2014】
+
+MC COCO2017年主要包含以下四个任务：目标检测与分割、图像描述、人体关键点检测
+
+【2017】COCO数据集现在有3种标注类型：**object instances（目标实例）, object keypoints（目标上的关键点）, 和image captions（看图说话）**。
+
+```shell
+annotations: 对应标注文件夹
+	├── instances_train2017.json		: 对应目标检测、分割任务的
+	├── instances_val2017.json			: 对应目标检测、分割任务的验证集标注文件
+	├── captions_train2017.json			: 对应图像描述的训练集标注文件
+	├── captions_val2017.json			: 对应图像描述的验证集标注文件
+	├── person_keypoints_train2017.json	: 对应人体关键点检测的训练集标注文件
+	└── person_keypoints_val2017.json	: 对应人体关键点检测的验证集标注文件夹
+
+
+Object segmentation			  : 目标级分割
+Recognition in context		  : 图像情景识别
+Superpixel stuff segmentation : 超像素分割
+330K images (>200K labeled)	  : 超过33万张图像，标注过的图像超过20万张
+1.5 million object instances  : 150万个对象实例
+80 object categories		  : 80个目标类别
+91 stuff categories			  : 91个材料类别
+5 captions per image		  : 每张图像有5段情景描述
+250,000 people with keypoints : 对25万个人进行了关键点标注
+
+
+""" 注意 """
+COCO数据集格式中，bbox 的保存格式为 [x, y, w, h]  
+如果需要转换为[x1,y1,x2,y2]，可以通过如下进行转换
+bbox = [x1, y1, x1 + w - 1, y1 + h - 1]
+```
+
+- 以目标检测分割任务为例
+
+```shell
+annotation{
+    "id": int, # 对象ID，因为每一个图像有不止一个对象，所以要对每一个对象编号（每个对象的ID是唯一的）
+    "image_id": int,# 对应的图片ID（与images中的ID对应）
+    "category_id": int,# 类别ID（与categories中的ID对应）
+    "segmentation": RLE or [polygon],# 对象的边界点（边界多边形，此时iscrowd=0）。
+    #segmentation格式取决于这个实例是一个单个的对象（即iscrowd=0，将使用polygons格式）还是一组对象（即iscrowd=1，将使用RLE格式）
+    "area": float,# 区域面积
+    "bbox": [x,y,width,height], # 定位边框 [x,y,w,h]
+    "iscrowd": 0 or 1 #见下
+}
+
+```
+
+![img](TyporaImg/OpenMMLab/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAVmVydGlyYQ==,size_20,color_FFFFFF,t_70,g_se,x_16.png)
+
 # 配置文件详解
 
 ## 配置文件名称风格
@@ -958,6 +1051,10 @@ python tools/test.py configs/votenet/votenet_8x8_scannet-3d-18class.py \
 
 ## KITTI数据格式说明
 
+### 下载
+
+![image-20221202105810266](TyporaImg/OpenMMLab/image-20221202105810266.png)
+
 ### 数据集划分
 
 - 测试集：7518
@@ -996,7 +1093,9 @@ score只用于网络预测，真值是1，网络预测值是在[0,1]范围之内
 
 
 
-- 三列：Easy、Medium、Hard
+- 三列分别代表在不同情况下Easy，Moderate，Hard的结果。
+- AP和AP40：使用11个和40等间距recall上的精确值的平均值作为分类器的AP。
+- 0.70, 0.70, 0.70和0.70, 0.50, 0.50，代表的是bbox，bev以及3d的阈值。
 
 ## 模型训练结果
 
@@ -1046,11 +1145,7 @@ score只用于网络预测，真值是1，网络预测值是在[0,1]范围之内
 
 模型文件：sassd_6x8_80e_kitti-3d-3class.py
 
-训练设置：40epochs；4*4
-
-问题:spconv库使用问题
-
-![image-20221126234819015](TyporaImg/OpenMMLab/image-20221126234819015.png)
+训练设置：40epochs；4*4【训练速度很慢】
 
 1. 论文模型精度
 
@@ -1107,11 +1202,17 @@ score只用于网络预测，真值是1，网络预测值是在[0,1]范围之内
 
 1. 模型训练结果
 
-- 训练
+- 验证集
 
 ![image-20221130115456818](TyporaImg/OpenMMLab/image-20221130115456818.png)
 
 ![image-20221130115525695](TyporaImg/OpenMMLab/image-20221130115525695.png)
+
+- 测试集
+
+![image-20221202204519594](TyporaImg/OpenMMLab/image-20221202204519594.png)
+
+![image-20221202204559590](TyporaImg/OpenMMLab/image-20221202204559590.png)
 
 - 问题：如何理解训练和测试的规模
 
@@ -1373,20 +1474,55 @@ mmdetection3d
 
 ## cuda安装
 
+### Windows
+
+1. 查看显卡型号和显存大小
+
+```shell
+# 打开Windows10的运行窗口，输入命令
+dxdiag
+```
+
+2. 基于显卡型号查找对应驱动
+
+- [GeForce驱动程序下载地址](https://www.nvidia.cn/geforce/drivers/)
+
+- [NVIDIA所有驱动程序下载](https://www.nvidia.cn/Download/index.aspx?lang=cn)
+- 借助PCI索引平台去获取显卡型号信息: [PCI ID Repository](http://pci-ids.ucw.cz/mods/PC/10de?action=help?help=pci)
+
+3. 基于驱动程序版本,查找匹配的cuda版本
+
+- [链接表3](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html)
+
+4. 下载适配的cuda进行安装
+
+- [CUDA版本下载](https://developer.nvidia.com/cuda-toolkit-archive)
+- 默认安装位置
+
+![image-20221206115823866](TyporaImg/OpenMMLab/image-20221206115823866.png)
+
+安装检查：
+
+```shell
+# cmd输入命令
+nvcc -V
+```
+
+
+
+5. 下载适配的cudnn进行安装
+
+- [cudnn版本下载](https://developer.nvidia.com/rdp/cudnn-archive)
+- 安装步骤
+
+![image-20221206123111347](TyporaImg/OpenMMLab/image-20221206123111347.png)
+
 ### 选择版本
 
 1. Windows在"管理"中查询设备显卡型号;Linuxs使用命令查询显卡型号.
 2. 基于显卡型号在nvidia官网查询匹配的驱动程序.
 3. [链接表3](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html):基于驱动程序版本,查找匹配的cuda版本.
 4. 基于cuda版本,在pytorch官网选择对应的pytorch版本.
-
-### 信息查询
-
-- 查看显卡内存
-
-```shell
-Windows:dxdiag
-```
 
 ### cuda与cudnn、cuda驱动、cudatoolkit 、NVIDIA Driver
 
@@ -1653,6 +1789,8 @@ copy以后，/usr/local/cuda-10.2目录下也会有相应文件。
 sudo rm -rf /usr/local/cuda/include/cudnn.h
 sudo rm -rf /usr/local/cuda/lib64/libcudnn*
 ```
+
+
 
 ## python编译安装
 
