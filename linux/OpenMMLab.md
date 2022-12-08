@@ -986,7 +986,23 @@ print(get_compiler_version())
 ```shell
 python demo/pcd_demo.py ${PCD_FILE} ${CONFIG_FILE} ${CHECKPOINT_FILE} [--device ${GPU_ID}] [--score-thr ${SCORE_THR}] [--out-dir ${OUT_DIR}] [--show]
 
-python demo/pcd_demo.py demo/data/kitti/kitti_000008.bin configs/second/hv_second_secfpn_6x8_80e_kitti-3d-car.py checkpoints/hv_second_secfpn_6x8_80e_kitti-3d-car_20200620_230238-393f000c.pth --out-dir output  #示例
+# 示例
+python demo/pcd_demo.py demo/data/kitti/kitti_000008.bin configs/second/hv_second_secfpn_6x8_80e_kitti-3d-car.py checkpoints/hv_second_secfpn_6x8_80e_kitti-3d-car_20200620_230238-393f000c.pth --out-dir demo/inferdata/kitti --show
+
+# 推导
+## second
+
+## p_3class
+demo/data/chen/003360.bin configs/pointpillars/hv_pointpillars_secfpn_6x8_160e_kitti-3d-3class.py checkpoints/hv_pointpillars_secfpn_6x8_160e_kitti-3d-3class_20220301_150306-37dc2420.pth --out-dir demo/inferdata/chen_pointpillars_3class
+
+
+## p_car
+demo/data/dair/000000.bin configs/pointpillars/hv_pointpillars_secfpn_6x8_160e_kitti-3d-car.py checkpoints/hv_pointpillars_secfpn_6x8_160e_kitti-3d-car_20220331_134606-d42d15ed.pth --out-dir demo/inferdata/dair_pointpillars_car 
+
+
+## 数据项维度不一致
+demo/data/chen/003360.bin configs/pointpillars/hv_pointpillars_secfpn_sbn_2x16_2x_waymoD5-3d-car.py checkpoints/hv_pointpillars_secfpn_sbn_2x16_2x_waymoD5-3d-car_20200901_204315-302fc3e7.pth --out-dir demo/inferdata/chen_pointpillars_waymo_car --show
+
 ```
 
 
@@ -1047,7 +1063,7 @@ python tools/test.py configs/votenet/votenet_8x8_scannet-3d-18class.py \
 --out results.pkl    --eval mAP
 ```
 
-
+![image-20221207170202052](TyporaImg/OpenMMLab/image-20221207170202052.png)
 
 ## KITTI数据格式说明
 
@@ -1062,7 +1078,93 @@ python tools/test.py configs/votenet/votenet_8x8_scannet-3d-18class.py \
 - 验证集：3769
 - 训练+验证：7481
 
-### KITTI标注数据说明
+### 采集平台
+
+cam2、velo
+
+```shell
+1惯性导航系统（GPS / IMU）：OXTS RT 3003
+1台激光雷达：Velodyne HDL-64E
+2台灰度相机，1.4百万像素：Point Grey Flea 2（FL2-14S3M-C）
+2个彩色摄像头，1.4百万像素：Point Grey Flea 2（FL2-14S3C-C）
+4个变焦镜头，4-8毫米：Edmund Optics NT59-917
+```
+
+![img](TyporaImg/OpenMMLab/63905255079129558b8e3cce.png)
+
+```shell
+KITTI数据集包含以下信息：
+原始和经同步与校正处理的双目灰度图像序列，以png格式存储，大小1240*370左右；
+原始和经同步与校正处理的双目彩色图像序列，以png格式存储，大小1240*370左右；
+3D Velodyne点云，每帧约10万个点，以bin的方式存储；
+3D GPS/IMU数据，包括位置、速度、加速度、元信息等，以txt方式存储；
+校正文件，包括相机参数、相机与GPS/IMU之间、相机与Velodyne转换，以txt存储；
+3D 目标检测标签，含汽车、卡车、有轨电车、行人、骑自行车的人，以xml的形式储存。
+```
+
+```shell
+文件说明：
+timestamps.txt文件是时间戳文件，记录了生成每条数据的具体时间；
+image_0x文件夹下的frame_number.png文件是图像文件，格式是8位PNG图，已经裁剪掉了天空和引擎盖，文件夹后的数字x表示不同相机（01灰色23彩色），图像经校正后大约50万像素；
+oxts文件夹下的frame_number.txt文件是GPS/IMU信息，包括方向、速度、加速度在内的30余种信息，可以在dataformat.txt文件中查看具体信息；
+velodyne_points文件加下为雷达点云文件，由浮点数组成，含坐标xyz和角度r信息，具体含义如下图[2]所示。每一帧对应的点数量不一定相同，大约有12万个点。
+tracklet_labels.xml文件为标注文件，包括“Car”“Van”“Truck”“Pedestrian”“Person（sitting）”“Cyclist”“Tram”“Misc”几类。每个对象都有类别标签和对应的大小信息。每一帧中，都提供了物体的变换旋转矩阵信息。
+data_calib.zip文件中为校正文件。
+```
+
+```shell
+各系统中坐标信息的定义如下：
+Camera: x = right, y = down, z = forward
+Velodyne: x = forward, y = left, z = up
+GPS/IMU: x = forward, y = left, z = up
+```
+
+```shell
+图像信息对齐：
+所有相机通过Pi和R0都可以互相映射。
+```
+
+雷达投影到相机图像：利用变换矩阵T加上Pi、R0。
+
+![img](TyporaImg/OpenMMLab/v2-2eb109ce92dd4992981cad10775104aa_720w.webp)
+
+### 标定文件
+
+```shell
+P0: 7.215377000000e+02 0.000000000000e+00 6.095593000000e+02 0.000000000000e+00 0.000000000000e+00 7.215377000000e+02 1.728540000000e+02 0.000000000000e+00 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00  
+P1: 7.215377000000e+02 0.000000000000e+00 6.095593000000e+02 -3.875744000000e+02 0.000000000000e+00 7.215377000000e+02 1.728540000000e+02 0.000000000000e+00 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00  
+P2: 7.070493000000e+02 0.000000000000e+00 6.040814000000e+02 4.575831000000e+01 0.000000000000e+00 7.070493000000e+02 1.805066000000e+02 -3.454157000000e-01 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 4.981016000000e-03  
+P3: 7.215377000000e+02 0.000000000000e+00 6.095593000000e+02 -3.395242000000e+02 0.000000000000e+00 7.215377000000e+02 1.728540000000e+02 2.199936000000e+00 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 2.729905000000e-03  
+R0_rect: 9.999128000000e-01 1.009263000000e-02 -8.511932000000e-03 -1.012729000000e-02 9.999406000000e-01 -4.037671000000e-03 8.470675000000e-03 4.123522000000e-03 9.999556000000e-01  
+Tr_velo_to_cam: 6.927964000000e-03 -9.999722000000e-01 -2.757829000000e-03 -2.457729000000e-02 -1.162982000000e-03 2.749836000000e-03 -9.999955000000e-01 -6.127237000000e-02 9.999753000000e-01 6.931141000000e-03 -1.143899000000e-03 -3.321029000000e-01  
+Tr_imu_to_velo: 9.999976000000e-01 7.553071000000e-04 -2.035826000000e-03 -8.086759000000e-01 -7.854027000000e-04 9.998898000000e-01 -1.482298000000e-02 3.195559000000e-01 2.024406000000e-03 1.482454000000e-02 9.998881000000e-01 -7.997231000000e-01
+```
+
+0, 1, 2, 3 代表相机编号:
+
+| 编号 | 说明         |
+| ---- | ------------ |
+| 0    | 左边灰度相机 |
+| 1    | 右边灰度相机 |
+| 2    | 左边彩色相机 |
+| 3    | 右边彩色相机 |
+
+P0, P1, P2, P3 分别代表对应的相机内参矩阵, 大小为 3x4：
+
+![img](TyporaImg/OpenMMLab/v2-1f4a1fa1d427ddc36aaba577b40c7e04_720w.webp)
+
+```shell
+fu 和 fv 是指相机的焦距;
+cu 和 cv 是指主点偏移： 相机的主轴是与图像平面垂直且穿过真空的线，它与图像平面的焦点称为主点。 主点偏移就是主点位置相对于图像平面(投影面)的位置。上图中，增加x0的值相当于把针孔向右移动，等价将投影面向左移动同时保持针孔位置不变。 bi 是指第i个摄像头到0号摄像头的距离偏移（x方向）。
+```
+
+`R0_rect` 为0号相机的修正矩阵.
+
+`Tr_velo_to_cam` 为velodyne到camera的矩阵 大小为3x4，包含了旋转矩阵 R 和 平移向量 t.
+
+`Tr_imu_to_vel` 为imu到camera的矩阵 大小为3x4，包含了旋转矩阵 R 和 平移向量 t.
+
+### KITTI数据标注格式
 
 ![img](TyporaImg/OpenMMLab/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM5NzMyNjg0,size_16,color_FFFFFF,t_70#pic_center.jpeg)
 
@@ -1070,15 +1172,23 @@ python tools/test.py configs/votenet/votenet_8x8_scannet-3d-18class.py \
 Car 0.00 2 -1.55 548.00 171.33 572.40 194.42 1.48 1.56 3.62 -2.72 0.82 48.22 -1.62
 
 type标签是Car，说明该物体是车类，如果是Dont Care，表示该物体不纳入目标检测情况之内。
-truncated标签是0，说明这个目标在RGB图像边界内，如果等于1，说明该目标卡在边界上了。
-occluded标签是2，说明这个目标有很大一部分被遮挡住了。
-alpha标签是-1.55，换算为角度约是-88deg，表示观测该物体的角度。
+truncated标签是0，说明这个目标在RGB图像边界内，如果等于1，说明该目标卡在边界上了。【阈值0,1】
+occluded标签是2，说明这个目标有很大一部分被遮挡住了。【阈值0,1,2,3】
+alpha标签是-1.55，换算为角度约是-88deg，表示观测该物体的角度。【阈值：-pi~pi】
 bbox标签是548.00 171.33 572.40 194.42，分别表示该物体在RGB图像上，相应2D框的左上角和右下角顶点的像素坐标。
 dimensions标签是1.48 1.56 3.62，表示目标的高度，宽度，和长度，单位是米。
-location标签是-2.72 0.82 48.22，表示目标中心的位置，单位是米。
-rotation_y标签是-1.62，换算为角度约是-92deg，表示物体自身旋转角，这里表示这个物体大概是横着出现在观察者的视线内。
+location标签是-2.72 0.82 48.22，表示目标中心的位置，单位是米。【相机坐标系下XYZ坐标】
+rotation_y标签是-1.62，换算为角度约是-92deg，表示物体自身旋转角，这里表示这个物体大概是横着出现在观察者的视线内。【阈值：-pi~pi】【相机坐标系下，相对Y轴的旋转角度。物体前进方向与相机坐标系x轴的夹角】
 score只用于网络预测，真值是1，网络预测值是在[0,1]范围之内，表示目标检测置信度。
 ```
+
+alpha的理解
+
+```shell
+在相机坐标系下，以相机原点为中心，相机原点到物体中心的连线为半径，将物体绕相机y轴旋转至相机z轴，此时物体方向与相机x轴的夹角。
+```
+
+![img](TyporaImg/OpenMMLab/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzI5OTMxMDgz,size_16,color_FFFFFF,t_70.png)
 
 ### KITTI数据集检测指标
 
@@ -1497,7 +1607,13 @@ dxdiag
 4. 下载适配的cuda进行安装
 
 - [CUDA版本下载](https://developer.nvidia.com/cuda-toolkit-archive)
-- 默认安装位置
+- 安装介绍
+
+安装时不用勾选驱动。
+
+![image-20221206134333191](TyporaImg/OpenMMLab/image-20221206134333191.png)
+
+选择默认安装位置即可。
 
 ![image-20221206115823866](TyporaImg/OpenMMLab/image-20221206115823866.png)
 
@@ -1516,6 +1632,28 @@ nvcc -V
 - 安装步骤
 
 ![image-20221206123111347](TyporaImg/OpenMMLab/image-20221206123111347.png)
+
+### windows源码编译mmcv-full
+
+- 编译器只能使用[Visual Studio2019](https://visualstudio.microsoft.com/zh-hans/vs/older-downloads/)
+- [openmmlab知乎安装](https://zhuanlan.zhihu.com/p/434491590)
+- [官网安装](https://mmcv.readthedocs.io/en/latest/get_started/build.html#prerequisite)
+
+- [CUDA对应算力架构](https://developer.nvidia.com/cuda-gpus#compute)
+
+- 设置CUDA环境变量
+
+```shell
+$env:MMCV_WITH_OPS = 1 
+$env:MAX_JOBS = 8 
+$env:TORCH_CUDA_ARCH_LIST="6.1" # 在CUDA算力架构官网查询，或者使用C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.1\extras\demo_suite\deviceQuery.exe 
+```
+
+- 【错误情景】conda list无法显示
+
+![image-20221206224927465](TyporaImg/OpenMMLab/image-20221206224927465.png)
+
+
 
 ### 选择版本
 
