@@ -1015,6 +1015,14 @@ python demo/multi_modality_demo.py ${PCD_FILE} ${IMAGE_FILE} ${ANNOTATION_FILE} 
 python demo/multi_modality_demo.py demo/data/kitti/kitti_000008.bin demo/data/kitti/kitti_000008.png demo/data/kitti/kitti_000008_infos.pkl configs/mvxnet/dv_mvx-fpn_second_secfpn_adamw_2x8_80e_kitti-3d-3class.py checkpoints/dv_mvx-fpn_second_secfpn_adamw_2x8_80e_kitti-3d-3class_20210831_060805-83442923.pth --out-dir output
 ```
 
+### 创建KITTI数据集
+
+```shell
+python tools/create_data.py kitti --root-path ./data/kitti --out-dir ./data/kitti --extra-tag kitti
+
+
+```
+
 
 
 ## 运行环境问题
@@ -1365,6 +1373,45 @@ alpha的理解
 ### 已复现的模型
 
 ![image-20221126154533168](TyporaImg/OpenMMLab/image-20221126154533168.png)
+
+# DAIR
+
+## 数据集准备
+
+![image-20221209145325979](TyporaImg/OpenMMLab/image-20221209145325979.png)
+
+### 数据集说明
+
+| 类别 | 数量                 | 说明 |
+| ---- | -------------------- | ---- |
+| C    | 路侧12424。车端15285 |      |
+| I    | 7058                 |      |
+| V    |                      |      |
+
+
+
+### 数据集格式转换
+
+![image-20221208223832015](TyporaImg/OpenMMLab/image-20221208223832015.png)
+
+```shell
+# 将路侧数据转为KITTI格式
+--source-root data/single-infrastructure --target-root data/single-infrastructure --split-path data/split_datas/single-infrastructure-split-data.json --label-type lidar --sensor-view infrastructure --no-classmerge
+```
+
+## 模型训练
+
+### second
+
+40epoch
+
+![image-20221210144350409](TyporaImg/OpenMMLab/image-20221210144350409.png)
+
+![image-20221210144415112](TyporaImg/OpenMMLab/image-20221210144415112.png)
+
+
+
+
 
 # 目标检测评价指标
 
@@ -2031,5 +2078,7 @@ nvidia-smi -l seconds
 nvidia-smi --loop=seconds
 ```
 
+# 传感器
 
+![image-20221209110909062](TyporaImg/OpenMMLab/image-20221209110909062.png)
 

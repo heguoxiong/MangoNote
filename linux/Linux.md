@@ -1,6 +1,6 @@
 # Linux
 
-## ubuntu系统安装
+## ubuntu系统安装【windows装ubuntu】
 
 - 双系统安装
 
@@ -21,6 +21,12 @@ linux的/boot启动分区要预留在windows系统磁盘中
 swap分区：交换分区，虚拟内存分区，内存2倍，不超过2GB
 /boot分区：启动分区，200MB【一定要挂载在系统启动硬盘上，否则BIOS无法找到系统】
 ```
+
+【图】：制作启动U盘
+
+![image-20221210153349855](TyporaImg/Linux/image-20221210153349855.png)
+
+![image-20221210153448167](TyporaImg/Linux/image-20221210153448167.png)
 
 【图】：压缩卷->创建未分配磁盘分区
 
