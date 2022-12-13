@@ -97,6 +97,86 @@ sudo dpkg -L sunloginclient   #查看向日葵安装路径
 点击Add添加向日葵路径：/usr/local/sunlogin/bin/sunloginclient
 ```
 
+## ubuntu内核版本控制
+
+### 指定内核版本
+
+```shell
+1.查看当前内核id
+grep submenu /boot/grub/grub.cfg
+【记录id：gnulinux-advanced-3f5e97d5-cd08-4560-94df-613149aac32e】
+
+2.查找想要使用的内核id
+grep gnulinux /boot/grub/grub.cfg
+【记录id：gnulinux-4.4.248-0404248-generic-advanced-3f5e97d5-cd08-4560-94df-613149aac32e】
+
+3.修改grub文件，切换内核
+sudo vim /etc/default/grub
+修改：
+ GRUB_DEFAULT=0
+ GRUB_DEFAULT="gnulinux-advanced-3f5e97d5-cd08-4560-94df-613149aac32e>gnulinux-4.4.248-0404248-generic-advanced-3f5e97d5-cd08-4560-94df-613149aac32e"
+
+4.更新grub
+sudo update-grub
+
+5.重启
+sudo reboot
+
+6.查看当前内核版本
+uname -r
+```
+
+- 其他命令
+
+```shell
+# 查看内核列表
+sudo dpkg --get-selections |grep linux-image
+# 查询列表中可更新的内核
+sudo apt-cache search linux-image
+# 查询当前当前已安装的内核
+dpkg -l |grep linux-image
+# 删除内核
+sudo apt-get remove linux-image-4.4.0-75-generic
+```
+
+### 禁止内核更新
+
+```shell
+1.修改配置文件1
+sudo gedit /etc/apt/apt.conf.d/10periodic
+
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "0";
+
+
+APT::Periodic::Update-Package-Lists "2";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "1";
+
+
+2.修改配置文件2
+sudo gedit /etc/apt/apt.conf.d/20auto-upgrades
+
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "0";
+
+
+APT::Periodic::Update-Package-Lists "2";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "1";
+
+3.重启
+sudo reboot
+```
+
+
+
 ## 基础配置
 
 ###  网络配置
